@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace TaskManager.Api.Controllers
 {
@@ -6,22 +7,48 @@ namespace TaskManager.Api.Controllers
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
     {
-        [HttpGet]
-        public IActionResult GetTasks()
-        {
-            var tasks = new[]
-            {
-                new { Id = 1, Title = "Learn Kubernetes", Completed = false },
-                new { Id = 2, Title = "Build .NET API", Completed = true }
-            };
+        private readonly IConfiguration _configuration;
 
-            return Ok(tasks);
+        public TasksController(IConfiguration configuration)
+        {
+            _configuration = configuration;
         }
 
-        [HttpPost]
-        public IActionResult CreateTask([FromBody] dynamic task)
+        [HttpGet]
+        public async Task<IActionResult> GetTasks()
         {
-            return CreatedAtAction(nameof(GetTasks), new { id = 3 }, task);
+            var connectionString =
+                _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException(
+                    "DefaultConnection is not configured.");
+
+            var tasks = new List<object>();
+
+            await using var connection =
+                new NpgsqlConnection(connectionString);
+
+            await connection.OpenAsync();
+
+            const string sql =
+                "SELECT id, title, completed FROM tasks ORDER BY id";
+
+            await using var command =
+                new NpgsqlCommand(sql, connection);
+
+            await using var reader =
+                await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                tasks.Add(new
+                {
+                    id = reader.GetInt32(0),
+                    title = reader.GetString(1),
+                    completed = reader.GetBoolean(2)
+                });
+            }
+
+            return Ok(tasks);
         }
     }
 }
