@@ -12,8 +12,8 @@ function TaskList() {
   return (
     <ul>
       {tasks.map(task => (
-        <li key={task.Id}>
-          {task.Title} - {task.Completed ? "Done" : "Pending"}
+        <li key={task.id}>
+          {task.title} - {task.completed ? "Done" : "Pending"}
         </li>
       ))}
     </ul>
