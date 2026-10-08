@@ -27,8 +27,11 @@ steps:
     inputs:
       versionSpec: '20.x'
 
+
   - script: |
-      npm ci
+      set -e
+      npm install
       npm run build
     workingDirectory: 'frontend/React App'
     displayName: 'Install and Build React Frontend'
+
